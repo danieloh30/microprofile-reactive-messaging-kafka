@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+    JBoss, Home of Professional Open Source
+    Copyright 2015, Red Hat, Inc. and/or its affiliates, and individual
+    contributors by the @authors tag. See the copyright.txt in the
+    distribution for a full listing of individual contributors.
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.jboss</groupId>
+        <artifactId>jboss-parent</artifactId>
+        <version>37</version>
+    </parent>
+    
+    <groupId>org.jboss.eap.xp.quickstarts</groupId>
+    <version>4.0.0.GA</version>
+
+    <artifactId>microprofile-reactive-messaging-kafka</artifactId>
+    <packaging>war</packaging>
+
+    <name>Quickstart: microprofile-reactive-messaging-kafka</name>
+
+    <properties>
+        <root.dir>${project.basedir}</root.dir>
+        <jboss.home.name>EAP7_HOME</jboss.home.name>
+        <product.name>JBoss EAP XP</product.name>
+        <product.version>4.0.0.GA</product.version>
+        <!-- A base list of dependency and plug-in version used in the various quick starts. -->
+        <version.org.asciidoctor.asciidoctor-maven-plugin>2.1.0</version.org.asciidoctor.asciidoctor-maven-plugin>
+        <version.wildfly.maven.plugin>2.0.2.Final</version.wildfly.maven.plugin>
+        <version.org.wildfly.checkstyle-config>1.0.7.Final</version.org.wildfly.checkstyle-config>
+        <version.org.wildfly.quickstarts.documentation.plugin>2.3.0.Final</version.org.wildfly.quickstarts.documentation.plugin>
+        <!-- other plug-in versions -->
+        <version.com.mycyla.license>3.0</version.com.mycyla.license>
+        <version.checkstyle>8.5</version.checkstyle>
+        <version.jaxws-tools-maven-plugin>1.2.3.Final</version.jaxws-tools-maven-plugin>
+        <!-- Explicitly declaring the source encoding eliminates the following
+            message: [WARNING] Using platform encoding (UTF-8 actually) to copy
+            filtered resources, i.e. build is platform dependent! -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Protocol to use for communication with remote maven repositories.
+                     You can set to 'http' if you are using a maven proxy and 'https'
+                     interferes with that. Use 'https' for builds that will be released
+                     to non-snapshot public maven repos -->
+        <maven.repository.protocol>https</maven.repository.protocol>
+        <!-- The full remote maven repo URL; can be overridden via -D for special use cases -->
+        <maven.repository.url>${maven.repository.protocol}://repository.jboss.org/nexus/content/groups/public/</maven.repository.url>
+        <!-- https://access.redhat.com/maven-repository -->
+        <maven.redhat.repository.url>${maven.repository.protocol}://maven.repository.redhat.com/ga/</maven.redhat.repository.url>
+
+        <!-- Version of BOMs
+        note: a SNAPSHOT version *requires* checkout of BOMs at https://github.com/wildfly/boms and build through "mvn clean install"
+        -->
+        <version.server.bom>7.4.0.GA</version.server.bom>
+        <version.microprofile.bom>3.0.0.GA</version.microprofile.bom>
+
+        <!-- Versions of unmanaged dependencies -->
+        <version.com.nimbusds.jose.jwt>5.4</version.com.nimbusds.jose.jwt>
+
+        <jboss.developer.drupal.url>http://rhdp-drupal.stage.redhat.com/</jboss.developer.drupal.url>
+        <linkXRef>false</linkXRef>
+
+        <!-- Test dependencies versions -->
+        <version.io.rest-assured>4.3.1</version.io.rest-assured>
+        <version.org.apache.kafka>2.7.0</version.org.apache.kafka>
+        <version.org.jboss.jboss-dmr>1.5.1.Final</version.org.jboss.jboss-dmr>
+        <version.org.springframework.kafka>2.6.4</version.org.springframework.kafka>
+        <!-- Plugin versions -->
+        <version.server.bootable-jar>4.0.0.GA-redhat-00004</version.server.bootable-jar>
+        <version.wildfly-jar.maven.plugin>4.0.3.Final-redhat-00001</version.wildfly-jar.maven.plugin>
+        <version.jkube.maven.plugin>1.0.1</version.jkube.maven.plugin>
+        <jkube.generator.from>registry.redhat.io/ubi8/openjdk-11:latest</jkube.generator.from>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- importing the jakartaee8-with-tools BOM adds specs and other useful artifacts as managed dependencies -->
+            <dependency>
+                <groupId>org.jboss.bom</groupId>
+                <artifactId>jboss-eap-jakartaee8-with-tools</artifactId>
+                <version>${version.server.bom}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- importing the microprofile BOM adds MicroProfile specs -->
+            <dependency>
+                <groupId>org.jboss.bom</groupId>
+                <artifactId>jboss-eap-xp-microprofile</artifactId>
+                <version>${version.microprofile.bom}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Import the CDI API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>jakarta.enterprise</groupId>
+            <artifactId>jakarta.enterprise.cdi-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Import the Reactive Messaging API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>org.eclipse.microprofile.reactive.messaging</groupId>
+            <artifactId>microprofile-reactive-messaging-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the Reactive Streams Operators API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>org.eclipse.microprofile.reactive-streams-operators</groupId>
+            <artifactId>microprofile-reactive-streams-operators-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the Reactive Streams API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the Kafka Client API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the Persistence API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the Annotations API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>org.jboss.spec.javax.annotation</groupId>
+            <artifactId>jboss-annotations-api_1.3_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the Persistence API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>org.jboss.spec.javax.transaction</groupId>
+            <artifactId>jboss-transaction-api_1.3_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the JAX-RS API, we use provided scope as the API is included in WildFly -->
+        <dependency>
+            <groupId>org.jboss.spec.javax.ws.rs</groupId>
+            <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- MicroProfile Reactive Messaging Kafka Connector Test Dependencies -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka-test</artifactId>
+            <scope>test</scope>
+            <version>${version.org.springframework.kafka}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <classifier>test</classifier>
+            <scope>test</scope>
+            <version>${version.org.apache.kafka}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams</artifactId>
+            <scope>test</scope>
+            <version>${version.org.apache.kafka}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams-test-utils</artifactId>
+            <scope>test</scope>
+            <version>${version.org.apache.kafka}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_2.13</artifactId>
+            <scope>test</scope>
+            <version>${version.org.apache.kafka}</version>
+        </dependency>
+
+        <!-- Other test dependencies -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+            <version>${version.io.rest-assured}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wildfly.arquillian</groupId>
+            <artifactId>wildfly-arquillian-common</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss</groupId>
+            <artifactId>jboss-dmr</artifactId>
+            <scope>test</scope>
+            <version>${version.org.jboss.jboss-dmr}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>commons-logging-jboss-logging</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.arquillian.junit</groupId>
+            <artifactId>arquillian-junit-container</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
+            <id>jboss-public-repository-group</id>
+            <name>JBoss Public Repository Group</name>
+            <url>${maven.repository.url}</url>
+            <layout>default</layout>
+        </repository>
+        <repository>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
+            <id>jboss-enterprise-maven-repository</id>
+            <name>JBoss Enterprise Maven Repository</name>
+            <url>${maven.redhat.repository.url}</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>jboss-public-repository-group</id>
+            <name>JBoss Public Repository Group</name>
+            <url>${maven.repository.url}</url>
+        </pluginRepository>
+        <pluginRepository>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <id>jboss-enterprise-maven-repository</id>
+            <name>JBoss Enterprise Maven Repository</name>
+            <url>${maven.redhat.repository.url}</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.wildfly.plugins</groupId>
+                    <artifactId>wildfly-maven-plugin</artifactId>
+                    <version>${version.wildfly.maven.plugin}</version>
+                </plugin>                
+            </plugins>
+        </pluginManagement>
+    </build>
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+                <property>
+                    <name>default</name>
+                    <value>!disabled</value>
+                </property>
+            </activation>
+        </profile>
+
+        <profile>
+            <id>openshift</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <version>2.6</version>
+                        <configuration>
+                            <outputDirectory>${basedir}/deployments</outputDirectory>
+                            <warName>ROOT</warName>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- <profile>
+            <id>openshift</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-war-plugin</artifactId>
+                        <version>${version.war.plugin}</version>
+                        <configuration>
+                            <warName>ROOT</warName>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile> -->
+        <profile>
+            <id>bootable-jar</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-jar-maven-plugin</artifactId>
+                        <version>${version.wildfly-jar.maven.plugin}</version>
+                        <configuration>
+                            <feature-pack-location>org.jboss.eap:wildfly-galleon-pack:${version.server.bootable-jar}</feature-pack-location>
+                            <layers>
+                                <layer>cloud-server</layer>
+                                <layer>h2-default-datasource</layer>
+                                <layer>microprofile-reactive-messaging-kafka</layer>
+                            </layers>
+                            <plugin-options>
+                                <jboss-fork-embedded>true</jboss-fork-embedded>
+                            </plugin-options>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>package</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>bootable-jar-openshift</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.wildfly.plugins</groupId>
+                        <artifactId>wildfly-jar-maven-plugin</artifactId>
+                        <version>${version.wildfly-jar.maven.plugin}</version>
+                        <configuration>
+                            <feature-pack-location>org.jboss.eap:wildfly-galleon-pack:${version.server.bootable-jar}</feature-pack-location>
+                            <layers>
+                                <layer>cloud-server</layer>
+                                <layer>h2-default-datasource</layer>
+                                <layer>microprofile-reactive-messaging-kafka</layer>
+                            </layers>
+                            <plugin-options>
+                                <jboss-fork-embedded>true</jboss-fork-embedded>
+                            </plugin-options>
+                            <cloud />
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>package</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.eclipse.jkube</groupId>
+                        <artifactId>openshift-maven-plugin</artifactId>
+                        <version>${version.jkube.maven.plugin}</version>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>resource</goal>
+                                    <goal>build</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <enricher>
+                                <config>
+                                    <jkube-service>
+                                        <type>NodePort</type>
+                                    </jkube-service>
+                                </config>
+                            </enricher>
+                            <resources>
+                                <env>
+                                    <!--
+                                        Set environment vars to adjust the JVM metaspace or we might end up
+                                        with OutOfMemoryErrors on OpenShift
+                                    -->
+                                    <GC_MAX_METASPACE_SIZE>256</GC_MAX_METASPACE_SIZE>
+                                    <GC_METASPACE_SIZE>96</GC_METASPACE_SIZE>
+                                    <!-- Set the AMQ Streams URL to what is set up by the instructions -->
+                                    <MP_MESSAGING_CONNECTOR_SMALLRYE_KAFKA_BOOTSTRAP_SERVERS>my-cluster-kafka-bootstrap:9092</MP_MESSAGING_CONNECTOR_SMALLRYE_KAFKA_BOOTSTRAP_SERVERS>
+                                </env>
+                            </resources>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
